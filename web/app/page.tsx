@@ -59,7 +59,7 @@ export default function Home() {
     setErrorMessage("");
 
     try {
-      const response = await fetch("http://localhost:4000/deploy", {
+      const response = await fetch("http://localhost:3001/deploy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: promptText }),

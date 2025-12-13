@@ -424,7 +424,147 @@ app.post("/regenerate-frontend", (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 4000;
+// Helper: Read current frontend code
+const readFrontendCode = (): string => {
+  const frontendPath = path.join(__dirname, "..", "preview-frontend", "app", "page.tsx");
+  if (fs.existsSync(frontendPath)) {
+    return fs.readFileSync(frontendPath, "utf8");
+  }
+  return "";
+};
+
+// Endpoint for general chat (no code modification)
+app.post("/chat", async (req, res) => {
+  const { message, contractAddress, contractABI } = req.body;
+  
+  if (!message) {
+    return res.status(400).json({ success: false, error: "Message is required" });
+  }
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You are a helpful AI coding assistant for a smart contract dApp. The contract is deployed at ${contractAddress || "an address"}. You can help users understand the contract, answer questions, and modify frontend code when asked. Be friendly and conversational. Only modify code when explicitly requested.`
+        },
+        {
+          role: "user",
+          content: String(message || "")
+        }
+      ],
+      model: "llama-3.1-8b-instant",
+      temperature: 0.7,
+      max_tokens: 500,
+    });
+
+    const response = completion?.choices?.[0]?.message?.content || "I'm here to help!";
+
+    res.json({
+      success: true,
+      response: response,
+    });
+  } catch (error: any) {
+    console.error("Chat failed:", error);
+    res.status(500).json({ success: false, error: error.message || error });
+  }
+});
+
+// Endpoint to modify frontend code using AI
+app.post("/modify-code", async (req, res) => {
+  const { prompt, contractAddress, contractABI, currentCode } = req.body;
+  
+  if (!prompt) {
+    return res.status(400).json({ success: false, error: "Prompt is required" });
+  }
+
+  try {
+    const existingCode = currentCode || readFrontendCode();
+    
+    console.log(`Modifying frontend code based on: ${prompt.substring(0, 100)}...`);
+    
+    // Add timeout wrapper (30 seconds max)
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Request timeout - AI response took too long")), 30000);
+    });
+    
+    const completionPromise = groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You are a React/TypeScript expert. Modify the code based on user requests. Return ONLY valid React code, no markdown or explanations. Preserve imports, contract address, and ABI. Keep functionality intact unless asked to remove it.`
+        },
+        {
+          role: "user",
+          content: `Code:\n${existingCode}\n\nRequest: ${prompt}\n\nModified code:`
+        }
+      ],
+      model: "llama-3.1-8b-instant",
+      temperature: 0.3,
+      max_tokens: 4000,
+    });
+    
+    const completion = await Promise.race([completionPromise, timeoutPromise]) as any;
+
+    let modifiedCode = completion?.choices?.[0]?.message?.content || "";
+    
+    if (!modifiedCode || typeof modifiedCode !== 'string') {
+      throw new Error("AI did not return valid code");
+    }
+    
+    // Clean up markdown if the AI adds it
+    try {
+      modifiedCode = modifiedCode.replace(/```tsx/g, "").replace(/```ts/g, "").replace(/```/g, "").trim();
+    } catch (e) {
+      console.warn("Error cleaning markdown:", e);
+    }
+    
+    // Remove any explanation text before the code
+    const codeStart = modifiedCode.indexOf("'use client'");
+    if (codeStart > 0) {
+      modifiedCode = modifiedCode.substring(codeStart);
+    }
+    
+    // Ensure we have valid code
+    if (!modifiedCode.includes("'use client'") && !modifiedCode.includes("export default")) {
+      throw new Error("AI response does not contain valid React component code");
+    }
+
+    res.json({
+      success: true,
+      oldCode: existingCode,
+      newCode: modifiedCode,
+      explanation: `I've modified the code based on your request: "${prompt}". Review the changes below and click "Apply Changes" to update the frontend.`,
+    });
+  } catch (error: any) {
+    console.error("Code modification failed:", error);
+    res.status(500).json({ success: false, error: error.message || error });
+  }
+});
+
+// Endpoint to apply modified code
+app.post("/apply-code", (req, res) => {
+  const { code } = req.body;
+  
+  if (!code) {
+    return res.status(400).json({ success: false, error: "Code is required" });
+  }
+
+  try {
+    writeFrontendCode(code);
+    console.log("Code applied successfully");
+    
+    res.json({
+      success: true,
+      message: "Code has been applied successfully",
+    });
+  } catch (error: any) {
+    console.error("Failed to apply code:", error);
+    res.status(500).json({ success: false, error: error.message || error });
+  }
+});
+
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
   console.log(`Preview frontend should be running on http://localhost:3002`);
