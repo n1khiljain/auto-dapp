@@ -1,7 +1,7 @@
 "use client";
 
 import react, {useState } from "react";
-import { RocketIcon, CheckCircle2, Terminal, Loader2, Boxes } from "lucide-react";
+import { RocketIcon, CheckCircle2, Terminal, Loader2, Boxes, Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +32,7 @@ interface DeploymentResult {
   explorerLink: string;
   network: string;
   previewUrl: string;
+  frontendCode?: string;
 }
 
 export default function Home() {
@@ -71,12 +72,22 @@ export default function Home() {
       }
 
       addLog("Deployment complete!");
+      console.log("Deployment response:", data); // Debug log
+      console.log("Frontend code in response:", !!data.frontendCode, data.frontendCode?.substring(0, 100)); // Debug log
+      
+      if (!data.frontendCode) {
+        console.warn("Warning: frontendCode is missing from backend response!");
+        addLog("Warning: Frontend code not received from backend");
+      }
+      
       setResult({
         contractAddress: data.contractAddress,
         explorerLink: data.explorerLink,
         network: "Sepolia Testnet",
-        previewUrl: data.previewUrl || "http://localhost:3002",
+        previewUrl: data.previewUrl || "http://localhost:3000/preview",
+        frontendCode: data.frontendCode || null,
       });
+      console.log("Frontend code stored in result:", !!data.frontendCode); // Debug log
       setStatus("success");
 
     } catch (error: any) {
@@ -90,6 +101,68 @@ export default function Home() {
   const handleDeploy = () => {
     if (!prompt.trim()) return;
     simulateDeploymentAPI(prompt);
+  };
+
+  const handleDownloadCode = async () => {
+    let codeToDownload = result?.frontendCode;
+    
+    // If frontendCode is not in result, fetch it from the backend
+    if (!codeToDownload) {
+      try {
+        addLog("Fetching code from backend...");
+        const response = await fetch("http://localhost:4000/frontend-code");
+        
+        // Check if response is OK and is JSON
+        if (!response.ok) {
+          const text = await response.text();
+          console.error("Backend error response:", text);
+          throw new Error(`Backend returned ${response.status}: ${text.substring(0, 100)}`);
+        }
+        
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          const text = await response.text();
+          console.error("Backend returned non-JSON:", text.substring(0, 200));
+          throw new Error("Backend returned non-JSON response");
+        }
+        
+        const data = await response.json();
+        if (data.success && data.frontendCode) {
+          codeToDownload = data.frontendCode;
+          // Update result with the fetched code
+          setResult(prev => prev ? { ...prev, frontendCode: codeToDownload } : null);
+        } else {
+          throw new Error(data.error || "Failed to fetch code from backend");
+        }
+      } catch (error: any) {
+        console.error("Error fetching code:", error);
+        setErrorMessage(`Frontend code not available: ${error.message}. Please try deploying again.`);
+        return;
+      }
+    }
+    
+    if (!codeToDownload) {
+      console.error("No frontend code available to download");
+      setErrorMessage("Frontend code not available. Please try deploying again.");
+      return;
+    }
+    
+    try {
+      // Create a blob with the code
+      const blob = new Blob([codeToDownload], { type: "text/tsx" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `contract-interface-${result?.contractAddress?.slice(0, 10) || "contract"}.tsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      addLog("Code downloaded successfully!");
+    } catch (error) {
+      console.error("Error downloading code:", error);
+      setErrorMessage("Failed to download code. Please try again.");
+    }
   };
 
   return (
@@ -195,11 +268,20 @@ export default function Home() {
                     <div className="font-mono bg-white/50 p-2 rounded border border-green-200 break-all">
                         {result.contractAddress}
                     </div>
-                    <div className="flex gap-4 mt-2">
+                    <div className="flex gap-4 mt-2 flex-wrap">
                       <Button variant="outline" asChild className="flex-1 border-green-600 text-green-700 hover:bg-green-100">
                         <a href={result.previewUrl} target="_blank" rel="noopener noreferrer">
                             🚀 Open Preview App
                         </a>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={handleDownloadCode}
+                        className="flex-1 border-green-600 text-green-700 hover:bg-green-100"
+                        title="Download the generated React component code"
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Download Code
                       </Button>
                       <Button variant="link" asChild className="text-green-700">
                         <a href={result.explorerLink} target="_blank" rel="noopener noreferrer">
