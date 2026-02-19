@@ -280,11 +280,21 @@ ${generateWriteUI()}
   return template;
 };
 
-// Helper: Write frontend to preview-frontend
+// Helper: Write frontend to preview-frontend (local dev only)
 const writeFrontendCode = (code: string) => {
-  const frontendPath = path.join(__dirname, "..", "preview-frontend", "app", "page.tsx");
-  fs.writeFileSync(frontendPath, code);
-  console.log(`Frontend code written to ${frontendPath}`);
+  try {
+    const frontendPath = path.join(__dirname, "..", "preview-frontend", "app", "page.tsx");
+    // Only write if the directory exists (local development)
+    const frontendDir = path.dirname(frontendPath);
+    if (fs.existsSync(frontendDir)) {
+      fs.writeFileSync(frontendPath, code);
+      console.log(`Frontend code written to ${frontendPath}`);
+    } else {
+      console.log("Preview frontend directory not found - skipping file write (this is normal in production)");
+    }
+  } catch (err) {
+    console.log("Could not write frontend file (this is normal in production):", err);
+  }
 };
 
 app.post("/deploy", async (req, res) => {
