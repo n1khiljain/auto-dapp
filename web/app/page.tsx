@@ -61,6 +61,8 @@ export default function Home() {
     setResult(null);
     setErrorMessage("");
 
+    addLog(`Connecting to backend at ${API_URL}...`);
+
     try {
       const response = await fetch(`${API_URL}/deploy`, {
         method: "POST",
@@ -68,15 +70,31 @@ export default function Home() {
         body: JSON.stringify({ prompt: promptText }),
       });
 
-      const data = await response.json();
+      // Check if response is ok before parsing
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server error (${response.status}): ${errorText || 'No response from server'}`);
+      }
+
+      // Check if response has content
+      const text = await response.text();
+      if (!text) {
+        throw new Error("Empty response from server. Is the backend running?");
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
+      }
 
       if (!data.success) {
-        throw new Error(data.error);
+        throw new Error(data.error || "Deployment failed");
       }
 
       addLog("Deployment complete!");
-      console.log("Deployment response:", data); // Debug log
-      console.log("Frontend code in response:", !!data.frontendCode, data.frontendCode?.substring(0, 100)); // Debug log
+      console.log("Deployment response:", data);
       
       if (!data.frontendCode) {
         console.warn("Warning: frontendCode is missing from backend response!");
@@ -90,13 +108,16 @@ export default function Home() {
         previewUrl: data.previewUrl || "http://localhost:3000/preview",
         frontendCode: data.frontendCode || null,
       });
-      console.log("Frontend code stored in result:", !!data.frontendCode); // Debug log
       setStatus("success");
 
     } catch (error: any) {
-      addLog(`Error: ${error.message}`);
+      console.error("Deployment error:", error);
+      const message = error.message.includes("Failed to fetch") 
+        ? `Cannot connect to backend. Make sure the server is running at ${API_URL}`
+        : error.message;
+      addLog(`Error: ${message}`);
       setStatus("error");
-      setErrorMessage(error.message);
+      setErrorMessage(message);
     }
   }
       

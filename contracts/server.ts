@@ -15,8 +15,32 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(cors());
+
+// CORS - allow all origins for now (you can restrict this later)
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 app.use(bodyParser.json());
+
+// Root endpoint
+app.get("/", (req, res) => {
+  res.json({ 
+    name: "AI DApp Deployer API",
+    status: "running",
+    endpoints: {
+      health: "GET /health",
+      deploy: "POST /deploy",
+    }
+  });
+});
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
 
 // Initialize Groq
 const groq = new Groq({
