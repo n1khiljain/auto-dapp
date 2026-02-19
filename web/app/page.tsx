@@ -19,6 +19,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
+// API URL - uses environment variable in production, localhost in development
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
 // Types for our state
 type DeploymentStatus = "idle" | "deploying" | "success" | "error";
 
@@ -59,7 +62,7 @@ export default function Home() {
     setErrorMessage("");
 
     try {
-      const response = await fetch("http://localhost:4000/deploy", {
+      const response = await fetch(`${API_URL}/deploy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: promptText }),
@@ -110,7 +113,7 @@ export default function Home() {
     if (!codeToDownload) {
       try {
         addLog("Fetching code from backend...");
-        const response = await fetch("http://localhost:4000/frontend-code");
+        const response = await fetch(`${API_URL}/frontend-code`);
         
         // Check if response is OK and is JSON
         if (!response.ok) {

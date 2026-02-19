@@ -70,13 +70,43 @@ export default function ContractPage() {
   const [countResult, set_countResult] = useState<string | null>(null);
   const [getCountResult, set_getCountResult] = useState<string | null>(null);
 
+  const getMetaMaskProvider = () => {
+    const ethereum = window.ethereum;
+    if (!ethereum) return null;
+    
+    // Check providers array (when multiple wallets installed)
+    if (ethereum.providers?.length) {
+      // Find real MetaMask - it has _metamask property
+      const mm = ethereum.providers.find(
+        (p: any) => p._metamask || (p.isMetaMask && !p.isUniswapWallet && !p.isCoinbaseWallet && !p.isBraveWallet)
+      );
+      if (mm) return mm;
+    }
+    
+    // Check providerMap (alternative structure some browsers use)
+    if (ethereum.providerMap) {
+      const mm = ethereum.providerMap.get('MetaMask');
+      if (mm) return mm;
+    }
+    
+    // Single provider - check if it's actually MetaMask
+    if (ethereum._metamask || (ethereum.isMetaMask && !ethereum.isUniswapWallet)) {
+      return ethereum;
+    }
+    
+    return null;
+  };
+
   const connectWallet = async () => {
     try {
-      if (!window.ethereum) {
-        setError("Please install MetaMask");
+      const metamaskProvider = getMetaMaskProvider();
+      
+      if (!metamaskProvider) {
+        setError("MetaMask not found. Please disable other wallet extensions or set MetaMask as your default wallet in browser settings.");
         return;
       }
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      
+      const provider = new ethers.BrowserProvider(metamaskProvider);
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
       const contractInstance = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);

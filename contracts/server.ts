@@ -38,7 +38,7 @@ const deleteFile = (filePath: string) => {
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 };
 
-// Helper: Generate frontend code using TEMPLATE (much more reliable than AI)
+// Generate frontend code using TEMPLATE 
 const generateFrontendCode = (
   contractAddress: string,
   abi: any[],
@@ -375,6 +375,12 @@ contract MyContract {
     const address = await contract.getAddress();
     console.log(`[Job ${jobId}] Deployed to: ${address}`);
 
+
+
+
+
+
+    
     // --- 4. GENERATE FRONTEND ---
     console.log(`[Job ${jobId}] Generating interactive frontend...`);
     const frontendCode = generateFrontendCode(
@@ -396,6 +402,7 @@ contract MyContract {
       previewUrl: "http://localhost:3002",
       code: code,
       abi: artifact.abi,
+      frontendCode: frontendCode,
     });
 
   } catch (error: any) {

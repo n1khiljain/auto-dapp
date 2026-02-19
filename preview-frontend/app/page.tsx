@@ -12,49 +12,11 @@ declare global {
   }
 }
 
-const CONTRACT_ADDRESS = "0xFF72e4b869926D4cC9b48946Fa4082E75512FB43";
+const CONTRACT_ADDRESS = "0x9c2976D18c4Ce23F7B2786E8e58Ed2Cc63b472d8";
 const CONTRACT_ABI = [
   {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "newCounterValue",
-        "type": "uint256"
-      }
-    ],
-    "name": "CounterIncremented",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "interactions",
-        "type": "uint256"
-      }
-    ],
-    "name": "UserInteractionUpdated",
-    "type": "event"
-  },
-  {
     "inputs": [],
-    "name": "counter",
+    "name": "count",
     "outputs": [
       {
         "internalType": "uint256",
@@ -67,52 +29,14 @@ const CONTRACT_ABI = [
   },
   {
     "inputs": [],
-    "name": "getCounter",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_user",
-        "type": "address"
-      }
-    ],
-    "name": "getUserInteractions",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "incrementCounter",
+    "name": "decrement",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "userInteractions",
+    "inputs": [],
+    "name": "getCount",
     "outputs": [
       {
         "internalType": "uint256",
@@ -121,6 +45,13 @@ const CONTRACT_ABI = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "increment",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   }
 ];
@@ -133,14 +64,11 @@ export default function ContractPage() {
   const [contract, setContract] = useState<ethers.Contract | null>(null);
   
   // Input states
-  const [getUserInteractions__user, set_getUserInteractions__user] = useState("");
-  const [userInteractions_param0, set_userInteractions_param0] = useState("");
+  
   
   // Result states
-  const [counterResult, set_counterResult] = useState<string | null>(null);
-  const [getCounterResult, set_getCounterResult] = useState<string | null>(null);
-  const [getUserInteractionsResult, set_getUserInteractionsResult] = useState<string | null>(null);
-  const [userInteractionsResult, set_userInteractionsResult] = useState<string | null>(null);
+  const [countResult, set_countResult] = useState<string | null>(null);
+  const [getCountResult, set_getCountResult] = useState<string | null>(null);
 
   const connectWallet = async () => {
     try {
@@ -160,48 +88,24 @@ export default function ContractPage() {
     }
   };
 
-  const call_counter = async () => {
+  const call_count = async () => {
     if (!contract) return;
     setLoading(true);
     try {
-      const result = await contract.counter();
-      set_counterResult(result.toString());
+      const result = await contract.count();
+      set_countResult(result.toString());
     } catch (e: any) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
   };
-  const call_getCounter = async () => {
+  const call_getCount = async () => {
     if (!contract) return;
     setLoading(true);
     try {
-      const result = await contract.getCounter();
-      set_getCounterResult(result.toString());
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-  const call_getUserInteractions = async () => {
-    if (!contract) return;
-    setLoading(true);
-    try {
-      const result = await contract.getUserInteractions(getUserInteractions__user);
-      set_getUserInteractionsResult(result.toString());
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-  const call_userInteractions = async () => {
-    if (!contract) return;
-    setLoading(true);
-    try {
-      const result = await contract.userInteractions(userInteractions_param0);
-      set_userInteractionsResult(result.toString());
+      const result = await contract.getCount();
+      set_getCountResult(result.toString());
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -209,12 +113,26 @@ export default function ContractPage() {
     }
   };
 
-  const call_incrementCounter = async () => {
+  const call_decrement = async () => {
     if (!contract) return;
     setLoading(true);
     setError(null);
     try {
-      const tx = await contract.incrementCounter();
+      const tx = await contract.decrement();
+      await tx.wait();
+      setTxHash(tx.hash);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  const call_increment = async () => {
+    if (!contract) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const tx = await contract.increment();
       await tx.wait();
       setTxHash(tx.hash);
     } catch (e: any) {
@@ -242,65 +160,37 @@ export default function ContractPage() {
 
             <div className="space-y-2">
               <div className="flex gap-2 items-center">
-                <Button onClick={call_counter} disabled={loading} variant="secondary" size="sm">
-                  counter
+                <Button onClick={call_count} disabled={loading} variant="secondary" size="sm">
+                  count
                 </Button>
               </div>
-              {counterResult && (
-                <p className="text-2xl font-bold text-emerald-400">{counterResult}</p>
+              {countResult && (
+                <p className="text-2xl font-bold text-emerald-400">{countResult}</p>
               )}
             </div>
 
             <div className="space-y-2">
               <div className="flex gap-2 items-center">
-                <Button onClick={call_getCounter} disabled={loading} variant="secondary" size="sm">
-                  getCounter
+                <Button onClick={call_getCount} disabled={loading} variant="secondary" size="sm">
+                  getCount
                 </Button>
               </div>
-              {getCounterResult && (
-                <p className="text-2xl font-bold text-emerald-400">{getCounterResult}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex gap-2 items-center">
-              <Input
-                placeholder="_user (address)"
-                value={getUserInteractions__user}
-                onChange={(e) => set_getUserInteractions__user(e.target.value)}
-                className="bg-slate-700 border-slate-600 text-white"
-              />
-                <Button onClick={call_getUserInteractions} disabled={loading} variant="secondary" size="sm">
-                  getUserInteractions
-                </Button>
-              </div>
-              {getUserInteractionsResult && (
-                <p className="text-2xl font-bold text-emerald-400">{getUserInteractionsResult}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex gap-2 items-center">
-              <Input
-                placeholder="param0 (address)"
-                value={userInteractions_param0}
-                onChange={(e) => set_userInteractions_param0(e.target.value)}
-                className="bg-slate-700 border-slate-600 text-white"
-              />
-                <Button onClick={call_userInteractions} disabled={loading} variant="secondary" size="sm">
-                  userInteractions
-                </Button>
-              </div>
-              {userInteractionsResult && (
-                <p className="text-2xl font-bold text-emerald-400">{userInteractionsResult}</p>
+              {getCountResult && (
+                <p className="text-2xl font-bold text-emerald-400">{getCountResult}</p>
               )}
             </div>
               
               {/* Write Functions */}
 
             <div className="space-y-2">
-              <Button onClick={call_incrementCounter} disabled={loading} className="w-full">
-                {loading ? "..." : "incrementCounter"}
+              <Button onClick={call_decrement} disabled={loading} className="w-full">
+                {loading ? "..." : "decrement"}
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <Button onClick={call_increment} disabled={loading} className="w-full">
+                {loading ? "..." : "increment"}
               </Button>
             </div>
             </div>

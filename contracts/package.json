@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "test": "hardhat test",
-    "dev": "nodemon --ignore 'contracts/**' --ignore 'artifacts/**' --ignore 'cache/**' --ignore 'typechain-types/**' --ext ts server.ts"
+    "dev": "nodemon --ignore 'contracts/**' --ignore 'artifacts/**' --ignore 'cache/**' --ignore 'typechain-types/**' --ext ts server.ts",
+    "start": "npx ts-node --esm server.ts",
+    "build": "npx hardhat compile"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
