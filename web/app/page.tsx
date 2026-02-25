@@ -221,7 +221,7 @@ export default function Home() {
                   <Label htmlFor="prompt">Your Idea</Label>
                   <Textarea
                     id="prompt"
-                    placeholder="e.g., Create an ERC-20 token named 'FutureCoin' (FUTR) with a total supply of 1 million. Add a function allowing the owner to mint more."
+                    placeholder="e.g., Create an On-chain Whitelist — owner adds/removes addresses, others can check membership"
                     className="min-h-[200px] text-base"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
