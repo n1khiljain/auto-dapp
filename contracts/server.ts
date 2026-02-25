@@ -14,6 +14,8 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const PREVIEW_URL = process.env.PREVIEW_FRONTEND_URL || "http://localhost:3002";
+
 const app = express();
 
 // CORS - allow all origins for now (you can restrict this later)
@@ -409,11 +411,6 @@ contract MyContract {
     const address = await contract.getAddress();
     console.log(`[Job ${jobId}] Deployed to: ${address}`);
 
-
-
-
-
-
     
     // --- 4. GENERATE FRONTEND ---
     console.log(`[Job ${jobId}] Generating interactive frontend...`);
@@ -433,7 +430,7 @@ contract MyContract {
       contractAddress: address,
       network: "Sepolia",
       explorerLink: `https://sepolia.etherscan.io/address/${address}`,
-      previewUrl: "http://localhost:3002",
+      previewUrl: PREVIEW_URL,
       code: code,
       abi: artifact.abi,
       frontendCode: frontendCode,
@@ -457,7 +454,7 @@ app.post("/regenerate-frontend", (req, res) => {
     
     res.json({
       success: true,
-      previewUrl: "http://localhost:3002",
+      previewUrl: PREVIEW_URL,
     });
   } catch (error: any) {
     console.error("Frontend generation failed:", error);
