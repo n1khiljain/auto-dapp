@@ -36,6 +36,7 @@ interface DeploymentResult {
   network: string;
   previewUrl: string;
   frontendCode?: string;
+  abi?: any[];
 }
 
 export default function Home() {
@@ -105,8 +106,9 @@ export default function Home() {
         contractAddress: data.contractAddress,
         explorerLink: data.explorerLink,
         network: "Sepolia Testnet",
-        previewUrl: data.previewUrl || "http://localhost:3000/preview",
+        previewUrl: data.previewUrl || "/preview",
         frontendCode: data.frontendCode || null,
+        abi: data.abi || [],
       });
       setStatus("success");
 
@@ -293,10 +295,23 @@ export default function Home() {
                         {result.contractAddress}
                     </div>
                     <div className="flex gap-4 mt-2 flex-wrap">
-                      <Button variant="outline" asChild className="flex-1 border-green-600 text-green-700 hover:bg-green-100">
-                        <a href={result.previewUrl} target="_blank" rel="noopener noreferrer">
-                            🚀 Open Preview App
-                        </a>
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 border-green-600 text-green-700 hover:bg-green-100"
+                        onClick={() => {
+                          // Store contract data in localStorage for the preview page
+                          localStorage.setItem('dapp-preview-data', JSON.stringify({
+                            contractAddress: result.contractAddress,
+                            abi: result.abi,
+                            frontendCode: result.frontendCode,
+                            explorerLink: result.explorerLink,
+                            timestamp: Date.now(),
+                          }));
+                          // Open preview page in new tab
+                          window.open('/preview', '_blank');
+                        }}
+                      >
+                        🚀 Open Preview App
                       </Button>
                       <Button 
                         variant="outline" 

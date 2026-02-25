@@ -14,7 +14,8 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PREVIEW_URL = process.env.PREVIEW_FRONTEND_URL || "http://localhost:3002";
+// Preview URL - in production, this should point to your Vercel frontend /preview route
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
 const app = express();
 
@@ -430,7 +431,7 @@ contract MyContract {
       contractAddress: address,
       network: "Sepolia",
       explorerLink: `https://sepolia.etherscan.io/address/${address}`,
-      previewUrl: PREVIEW_URL,
+      previewUrl: `${FRONTEND_URL}/preview`,
       code: code,
       abi: artifact.abi,
       frontendCode: frontendCode,
@@ -454,7 +455,8 @@ app.post("/regenerate-frontend", (req, res) => {
     
     res.json({
       success: true,
-      previewUrl: PREVIEW_URL,
+      previewUrl: `${FRONTEND_URL}/preview`,
+      frontendCode: frontendCode,
     });
   } catch (error: any) {
     console.error("Frontend generation failed:", error);
@@ -465,5 +467,5 @@ app.post("/regenerate-frontend", (req, res) => {
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
-  console.log(`Preview frontend should be running on http://localhost:3002`);
+  console.log(`Frontend URL configured as: ${FRONTEND_URL}`);
 });
